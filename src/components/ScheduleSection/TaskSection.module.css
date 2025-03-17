@@ -1,0 +1,85 @@
+.currentTaskArea { /* CamelCase */
+  border-radius: 6px;
+  padding: 10px;
+  background-color: var(--base-dark);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  height: 54px;
+}
+
+.currentTask {
+  background-color: var(--base-dark);
+  border: 2px solid var(--mid-tone);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--text);
+  font-size: 1em;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 75%;
+  max-width: 75%;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.currentTask .taskText {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.placeholder {
+  color: var(--text);
+  opacity: 0.6;
+  font-style: italic;
+  border-style: dashed;
+  padding: 10px;
+  width: 75%;
+  max-width: 75%;
+  position: absolute;
+  right: 10px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+.staged {
+  border-style: solid;
+}
+
+.active {
+  border: 1px solid var(--accent-2);
+  color: var(--text);
+  box-shadow: 0 0 10px var(--accent-2);
+}
+
+.active .taskText {
+  color: var(--text);
+  text-shadow: 0 0 10px var(--accent-2);
+}
+
+.taskButton {
+  background-color: var(--base-dark);
+  color: var(--text);
+  border: 1px solid var(--accent-2);
+  text-shadow: 0 0 10px var(--accent-2);
+  box-shadow: 0 0 10px var(--accent-2);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+  font-size: 0.9em;
+}
+
+.taskButton:hover {
+  background-color: var(--base-dark);
+  color: var(--accent-2);
+  box-shadow: 0 0 10px var(--accent-2);
+}

@@ -1,56 +1,100 @@
-import { useState } from 'react';
-import './App.css';
+import { useState, useEffect } from 'react';
+import 'styles/global.css';
+import TreeSection from './components/TreeSection/TreeSection';
+import ScheduleSection from './components/ScheduleSection/ScheduleSection';
+import ListSection from './components/ListSection/ListSection';
 
 function App() {
-  const [tree] = useState({
-    name: "Live a Good Life",
-    children: [
-      { name: "Health", children: [{ name: "Body", children: [{ name: "Run for 30 mins" }] }] },
-      { name: "Wealth", children: [{ name: "Work", children: [{ name: "Finish report" }] }] },
-    ],
-  });
+  const [tree, setTree] = useState(null);
+  const [list, setList] = useState([]);
+  const [activeTask, setActiveTask] = useState(null);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [stagedTask, setStagedTask] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/tree')
+      .then((res) => res.json())
+      .then((data) => {
+        console.log('Fetched tree:', data);
+        setTree(data);
+        const tasks = getTasks(data);
+        console.log('Tasks for list:', tasks);
+        setList(tasks);
+      })
+      .catch((err) => console.error('Fetch tree failed:', err));
+
+    fetch('http://localhost:5000/api/completed')
+      .then((res) => res.json())
+      .then((data) => setCompletedTasks(data))
+      .catch((err) => console.error('Fetch completed failed:', err));
+  }, []);
+
+  useEffect(() => {
+    if (tree) {
+      setList(getTasks(tree));
+      fetch('http://localhost:5000/api/tree', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tree),
+      }).catch((err) => console.error('Sync tree failed:', err));
+    }
+  }, [tree]);
 
   const getTasks = (node) => {
-    if (!node.children || node.children.length === 0) return [node.name];
-    return node.children.flatMap(getTasks);
+    if (!node) return [];
+    if (node.isTask && (!node.children || node.children.length === 0)) return [node.name];
+    return node.children ? node.children.flatMap(getTasks) : [];
   };
-  const tasks = getTasks(tree);
+
+  const removeTaskFromTree = (node, taskName) => {
+    if (!node) return null;
+    if (node.isTask && node.name === taskName && (!node.children || node.children.length === 0)) return null;
+    if (node.children) {
+      node.children = node.children.map((child) => removeTaskFromTree(child, taskName)).filter(Boolean);
+    }
+    return node;
+  };
+
+  const handleStartComplete = (task) => {
+    if (!activeTask) {
+      setActiveTask({ task: stagedTask, startTime: new Date().toISOString() });
+      setStagedTask(null);
+    } else if (activeTask.task === task) {
+      const endTime = new Date().toISOString();
+      fetch('http://localhost:5000/api/completed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: activeTask.task, startTime: activeTask.startTime, endTime }),
+      })
+        .then(() => {
+          setCompletedTasks((prev) => [...prev, { task: activeTask.task, startTime: activeTask.startTime, endTime }]);
+          const updatedTree = removeTaskFromTree(tree, activeTask.task);
+          console.log('Updated tree:', updatedTree);
+          setTree(updatedTree); // Triggers list update via useEffect
+          setActiveTask(null);
+        })
+        .catch((err) => console.error('Complete task failed:', err));
+    }
+  };
 
   return (
     <div className="App">
-      <h1>My Life App</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-        <div>
-          <h2>Life Goals</h2>
-          <TreeNode node={tree} />
-        </div>
-        <div>
-          <h2>To-Do List</h2>
-          <ul>
-            {tasks.map((task, idx) => (
-              <li key={idx}>{task}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h2>Daily Schedule</h2>
-          <p>[Time slots here]</p>
-        </div>
+      <div className="menu-bar"></div>
+      <div className="main-layout">
+        <TreeSection tree={tree} setTree={setTree} />
+        <ScheduleSection 
+          completedTasks={completedTasks} 
+          stagedTask={stagedTask} 
+          setStagedTask={setStagedTask} 
+          activeTask={activeTask} 
+          handleStartComplete={handleStartComplete} 
+          list={list} // Pass list
+          setList={setList} // Pass setList
+        />
+        <ListSection list={list} setList={setList} />
       </div>
+      <div className="footer"></div>
     </div>
-  );
-}
-
-function TreeNode({ node }) {
-  return (
-    <ul>
-      <li>
-        {node.name}
-        {node.children && node.children.map((child, idx) => (
-          <TreeNode key={idx} node={child} />
-        ))}
-      </li>
-    </ul>
   );
 }
 

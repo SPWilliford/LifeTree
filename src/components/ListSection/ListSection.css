@@ -1,0 +1,40 @@
+.list-section {
+  flex: 1;
+  min-width: 0;
+  padding: 15px;
+  box-sizing: border-box;
+  background-color: var(--base-dark);
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center task items horizontally */
+  gap: 10px;
+  flex-grow: 1;
+}
+
+.task-item {
+  background-color: var(--base-dark);
+  border: 2px solid var(--mid-tone);
+  border-radius: 6px;
+  padding: 10px;
+  color: var(--text);
+  cursor: grab;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  width: 75%;
+  text-align: center; /* Center text inside task items */
+}
+
+.task-item:hover {
+  transform: scale(1.02);
+  filter: brightness(1.2);
+}
+
+.task-item:active {
+  cursor: grabbing;
+}

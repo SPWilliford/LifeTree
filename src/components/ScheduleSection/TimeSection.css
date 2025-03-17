@@ -1,0 +1,13 @@
+.current-time-area {
+    background-color: var(base-dark);
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .clock {
+    font-size: 1.8em;
+    color: var(--text);
+    font-weight: bold;
+  }

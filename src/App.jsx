@@ -10,6 +10,12 @@ function App() {
   const [activeTask, setActiveTask] = useState(null);
   const [completedTasks, setCompletedTasks] = useState([]);
   const [stagedTask, setStagedTask] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetch('http://localhost:5000/api/tree')
@@ -70,16 +76,24 @@ function App() {
           setCompletedTasks((prev) => [...prev, { task: activeTask.task, startTime: activeTask.startTime, endTime }]);
           const updatedTree = removeTaskFromTree(tree, activeTask.task);
           console.log('Updated tree:', updatedTree);
-          setTree(updatedTree); // Triggers list update via useEffect
+          setTree(updatedTree);
           setActiveTask(null);
         })
         .catch((err) => console.error('Complete task failed:', err));
     }
   };
 
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="App">
-      <div className="menu-bar"></div>
+      <div className="menu-bar">
+        <div className="daily-info">
+          <div className="clock">{formatTime(currentTime)}</div>
+        </div>
+      </div>
       <div className="main-layout">
         <TreeSection tree={tree} setTree={setTree} />
         <ScheduleSection 
@@ -88,8 +102,9 @@ function App() {
           setStagedTask={setStagedTask} 
           activeTask={activeTask} 
           handleStartComplete={handleStartComplete} 
-          list={list} // Pass list
-          setList={setList} // Pass setList
+          list={list}
+          setList={setList}
+          currentTime={currentTime} // Pass currentTime
         />
         <ListSection list={list} setList={setList} />
       </div>

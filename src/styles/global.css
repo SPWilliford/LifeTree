@@ -1,4 +1,3 @@
-/* styles/global.css */
 :root {
   --base-dark: #1e272e;     /* Sections, slots */
   --app-bg: #151c22;        /* Darker App bg */
@@ -9,11 +8,18 @@
 }
 
 .App {
-  min-height: 100vh;
+  height: 100vh; /* Changed from min-height to cap at viewport */
   display: flex;
   flex-direction: column;
   background-color: var(--app-bg);
   padding: 0;
+  overflow: hidden; /* Prevent page scroll */
+}
+
+.menu-bar {
+  height: 50px;
+  background-color: var(--base-dark);
+  border-bottom: 1px solid var(--mid-tone);
 }
 
 .main-layout {
@@ -25,13 +31,8 @@
   gap: 20px;
   padding: 20px;
   box-sizing: border-box;
-  flex-grow: 1;
-}
-
-.menu-bar {
-  height: 50px;
-  background-color: var(--base-dark);
-  border-bottom: 1px solid var(--mid-tone);
+  flex: 1; /* Changed from flex-grow to flex shorthand */
+  overflow: hidden; /* Contain child scrolls */
 }
 
 .footer {

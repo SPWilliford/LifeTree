@@ -10,3 +10,9 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.scroll-container {
+  flex: 1; /* Grow to fill schedule-section */
+  overflow-y: auto;
+  padding-top: 0.6em; /* Offset for first label */
+}

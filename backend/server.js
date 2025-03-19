@@ -4,19 +4,18 @@ import cors from 'cors';
 
 const app = express();
 const port = 5000;
-const db = sqlite3('./life-tree.db');
+const db = sqlite3('./backend/life-tree.db');
 
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
-// Tree table (unchanged structure, update default data)
 db.exec(`
   CREATE TABLE IF NOT EXISTS tree (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     data TEXT NOT NULL
   )
 `);
-// Completed tasks table (was schedule)
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS completed_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

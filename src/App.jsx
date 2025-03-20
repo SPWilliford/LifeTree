@@ -23,61 +23,46 @@ function App() {
       .then((data) => {
         console.log('Fetched tree:', data);
         setTree(data);
-        const tasks = getTasks(data);
-        console.log('Tasks for list:', tasks);
-        setList(tasks);
       })
       .catch((err) => console.error('Fetch tree failed:', err));
 
-    fetch('http://localhost:5000/api/completed')
+    fetch('http://localhost:5000/api/daily-tasks')
       .then((res) => res.json())
-      .then((data) => setCompletedTasks(data))
-      .catch((err) => console.error('Fetch completed failed:', err));
+      .then((data) => {
+        console.log('Daily tasks:', data);
+        fetch('http://localhost:5000/api/completed')
+          .then((res) => res.json())
+          .then((completed) => {
+            const today = new Date().toISOString().split('T')[0];
+            const todayCompleted = completed.filter(t => t.end_time.startsWith(today));
+            const filteredList = data.filter(task => 
+              !todayCompleted.some(ct => ct.tree_id === task.treeId && ct.task === task.name)
+            );
+            setList(filteredList);
+            setCompletedTasks(completed);
+          })
+          .catch((err) => console.error('Fetch completed failed:', err));
+      })
+      .catch((err) => console.error('Fetch daily tasks failed:', err));
   }, []);
-
-  useEffect(() => {
-    if (tree) {
-      setList(getTasks(tree));
-      fetch('http://localhost:5000/api/tree', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tree),
-      }).catch((err) => console.error('Sync tree failed:', err));
-    }
-  }, [tree]);
-
-  const getTasks = (node) => {
-    if (!node) return [];
-    if (node.isTask && (!node.children || node.children.length === 0)) return [node.name];
-    return node.children ? node.children.flatMap(getTasks) : [];
-  };
-
-  const removeTaskFromTree = (node, taskName) => {
-    if (!node) return null;
-    if (node.isTask && node.name === taskName && (!node.children || node.children.length === 0)) return null;
-    if (node.children) {
-      node.children = node.children.map((child) => removeTaskFromTree(child, taskName)).filter(Boolean);
-    }
-    return node;
-  };
 
   const handleStartComplete = (task) => {
     if (!activeTask) {
-      setActiveTask({ task: stagedTask, startTime: new Date().toISOString() });
+      // Start: task is { treeId, name }
+      setActiveTask({ treeId: task.treeId, task: task.name, startTime: new Date().toISOString() });
       setStagedTask(null);
-    } else if (activeTask.task === task) {
+    } else {
+      // Complete: task is { treeId, task, startTime }
       const endTime = new Date().toISOString();
       fetch('http://localhost:5000/api/completed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: activeTask.task, startTime: activeTask.startTime, endTime }),
+        body: JSON.stringify({ treeId: task.treeId, task: task.task, startTime: task.startTime, endTime }),
       })
         .then(() => {
-          setCompletedTasks((prev) => [...prev, { task: activeTask.task, startTime: activeTask.startTime, endTime }]);
-          const updatedTree = removeTaskFromTree(tree, activeTask.task);
-          console.log('Updated tree:', updatedTree);
-          setTree(updatedTree);
+          setCompletedTasks((prev) => [...prev, { tree_id: task.treeId, task: task.task, start_time: task.startTime, end_time: endTime }]);
           setActiveTask(null);
+          setList((prev) => prev.filter(t => t.treeId !== task.treeId || t.name !== task.task));
         })
         .catch((err) => console.error('Complete task failed:', err));
     }
@@ -104,7 +89,7 @@ function App() {
           handleStartComplete={handleStartComplete} 
           list={list}
           setList={setList}
-          currentTime={currentTime} // Pass currentTime
+          currentTime={currentTime}
         />
         <ListSection list={list} setList={setList} />
       </div>

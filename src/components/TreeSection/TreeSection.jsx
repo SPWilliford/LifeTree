@@ -12,12 +12,10 @@ function TreeSection({ tree, setTree }) {
 
 function TreeNode({ node, setTree, path, tree }) {
   if (!node) return null;
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Default expanded
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(node.name || '');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newName, setNewName] = useState('New Item');
-  const [isTask, setIsTask] = useState(node.isTask || false);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const toggleExpand = () => setIsExpanded(!isExpanded);
 
@@ -30,48 +28,45 @@ function TreeNode({ node, setTree, path, tree }) {
     }
   };
 
-  const handleAddChild = () => {
-    setShowAddForm(true); // Show form instead of adding directly
+  const handleDoubleClick = () => {
+    setIsEditing(true);
   };
 
-  const submitAddChild = () => {
-    if (!tree || !newName) return;
+  const handleEditSave = () => {
+    if (!tree || !editName) return;
     const updatedTree = safeClone(tree);
     let current = updatedTree;
     path.forEach((idx) => (current = current.children[idx]));
-    const newIsTask = node.isTask ? true : isTask; // Inherit or user choice
-    current.children.push({ name: newName, isTask: newIsTask, children: [] });
+    current.name = editName;
+    setTree(updatedTree);
+    fetch('http://localhost:5000/api/tree', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedTree),
+    }).catch((err) => console.error('Save tree failed:', err));
+    setIsEditing(false);
+  };
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    setContextMenu({ x: e.pageX, y: e.pageY });
+  };
+
+  const handleAddChild = () => {
+    if (!tree) return;
+    const updatedTree = safeClone(tree);
+    let current = updatedTree;
+    path.forEach((idx) => (current = current.children[idx]));
+    current.children = current.children || [];
+    current.children.push({ name: 'New Item', isTask: node.isTask || false, children: [] });
     setTree(updatedTree);
     setIsExpanded(true);
-    setShowAddForm(false);
-    setNewName('New Item');
-    setIsTask(false); // Reset for next add
-
     fetch('http://localhost:5000/api/tree', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedTree),
     }).catch((err) => console.error('Add child failed:', err));
-  };
-
-  const handleEdit = () => {
-    if (isEditing) {
-      if (!tree) {
-        console.error('No tree to edit');
-        return;
-      }
-      const updatedTree = safeClone(tree);
-      let current = updatedTree;
-      path.forEach((idx) => (current = current.children[idx]));
-      current.name = editName;
-      setTree(updatedTree);
-      fetch('http://localhost:5000/api/tree', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTree),
-      }).catch((err) => console.error('Edit tree failed:', err));
-    }
-    setIsEditing(!isEditing);
+    setContextMenu(null);
   };
 
   const handleDelete = () => {
@@ -86,6 +81,7 @@ function TreeNode({ node, setTree, path, tree }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedTree),
     }).catch((err) => console.error('Delete tree failed:', err));
+    setContextMenu(null);
   };
 
   useEffect(() => {
@@ -93,49 +89,40 @@ function TreeNode({ node, setTree, path, tree }) {
   }, [node.name]);
 
   return (
-    <div className="tree-node">
+    <div className="tree-node" onContextMenu={handleContextMenu}>
       <div className="tree-node-content">
         {isEditing ? (
-          <input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onBlur={handleEdit}
-            autoFocus
-          />
+          <span className="tree-node-editing">
+            <span className="expand-icon" onClick={toggleExpand}>
+              {isExpanded ? '▼' : '▶'}
+            </span>
+            <input
+              className="tree-node-input"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleEditSave}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleEditSave(); }}
+              style={{ width: `${editName.length + 1}ch` }}
+              autoFocus
+            />
+          </span>
         ) : (
-          <span onClick={toggleExpand} className="tree-node-name">
-            {node.children && node.children.length > 0 && (
-              <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
-            )}
-            {node.name || 'Unnamed'}
+          <span className="tree-node-name">
+            <span className="expand-icon" onClick={toggleExpand}>
+              {isExpanded ? '▼' : '▶'}
+            </span>
+            <span onDoubleClick={handleDoubleClick}>{node.name || 'Unnamed'}</span>
           </span>
         )}
-        <div className="tree-node-actions">
-          <button onClick={handleAddChild}>+</button>
-          <button onClick={handleEdit}>{isEditing ? 'Save' : 'Edit'}</button>
-          {path.length > 0 && <button onClick={handleDelete}>Delete</button>}
-        </div>
       </div>
-      {showAddForm && (
-        <div className="add-form">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Enter name"
-            autoFocus
-          />
-          {!node.isTask && (
-            <label>
-              <input
-                type="checkbox"
-                checked={isTask}
-                onChange={(e) => setIsTask(e.target.checked)}
-              />
-              Task?
-            </label>
-          )}
-          <button onClick={submitAddChild}>Add</button>
-          <button onClick={() => setShowAddForm(false)}>Cancel</button>
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{ position: 'absolute', left: contextMenu.x, top: contextMenu.y }}
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          <button onClick={handleAddChild}>Add Child</button>
+          {path.length > 0 && <button onClick={handleDelete}>Delete</button>}
         </div>
       )}
       {isExpanded && node.children && (

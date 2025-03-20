@@ -9,67 +9,93 @@ const db = sqlite3('./backend/life-tree.db');
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
+// Schema Setup
 db.exec(`
-  CREATE TABLE IF NOT EXISTS tree (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    data TEXT NOT NULL
-  )
-`);
-
-db.exec(`
+  CREATE TABLE IF NOT EXISTS trees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    parent_id INTEGER,
+    is_task BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (parent_id) REFERENCES trees(id)
+  );
   CREATE TABLE IF NOT EXISTS completed_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tree_id INTEGER NOT NULL,
     task TEXT NOT NULL,
-    startTime TEXT NOT NULL,
-    endTime TEXT NOT NULL
-  )
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    FOREIGN KEY (tree_id) REFERENCES trees(id)
+  );
 `);
 
+// Initialize Default Root (If Empty)
+const rows = db.prepare('SELECT COUNT(*) as count FROM trees').get();
+if (rows.count === 0) {
+  db.prepare('INSERT INTO trees (name, is_task) VALUES (?, ?)').run("My LifeTree", 0);
+}
+
+// Get Tree
 app.get('/api/tree', (req, res) => {
-  console.log('GET /api/tree called');
-  const row = db.prepare('SELECT data FROM tree WHERE id = 1').get();
-  if (row) {
-    console.log('Found row:', row);
-    return res.json(JSON.parse(row.data));
-  }
-  const defaultTree = {
-    name: "Live a Good Life", isTask: false,
-    children: [
-      { name: "Health", isTask: false, children: [
-        { name: "Body", isTask: false, children: [
-          { name: "Run for 30 mins", isTask: true }
-        ] }
-      ] },
-      { name: "Wealth", isTask: false, children: [
-        { name: "Work", isTask: false, children: [
-          { name: "Finish report", isTask: true }
-        ] }
-      ] }
-    ],
+  const rows = db.prepare('SELECT * FROM trees').all();
+  const buildTree = (parentId = null) => {
+    return rows.filter(row => row.parent_id === parentId).map(row => ({
+      id: row.id,
+      name: row.name,
+      isTask: !!row.is_task,
+      children: buildTree(row.id),
+    }));
   };
-  console.log('Inserting default tree:', defaultTree);
-  db.prepare('INSERT INTO tree (id, data) VALUES (1, ?)').run(JSON.stringify(defaultTree));
-  res.json(defaultTree);
+  res.json(buildTree()[0]);
 });
 
+// Update Tree (Targeted Update)
 app.post('/api/tree', (req, res) => {
-  console.log('POST /api/tree received:', req.body);
-  const treeData = JSON.stringify(req.body);
-  db.prepare('REPLACE INTO tree (id, data) VALUES (1, ?)').run(treeData);
-  res.json({ message: 'Tree updated', tree: req.body });
+  const updateTree = (node, parentId = null) => {
+    const existing = node.id ? db.prepare('SELECT id FROM trees WHERE id = ?').get(node.id) : null;
+    let nodeId;
+    if (existing) {
+      db.prepare('UPDATE trees SET name = ?, parent_id = ?, is_task = ? WHERE id = ?').run(node.name, parentId, node.isTask ? 1 : 0, node.id);
+      nodeId = node.id;
+    } else {
+      const { lastInsertRowid } = db.prepare('INSERT INTO trees (name, parent_id, is_task) VALUES (?, ?, ?)').run(node.name, parentId, node.isTask ? 1 : 0);
+      nodeId = lastInsertRowid;
+    }
+    if (node.children) node.children.forEach(child => updateTree(child, nodeId));
+    return nodeId;
+  };
+  updateTree(req.body);
+  res.json({ message: 'Tree updated' });
 });
 
-app.get('/api/completed', (req, res) => {
-  console.log('GET /api/completed called');
-  const rows = db.prepare('SELECT task, startTime, endTime FROM completed_tasks').all();
-  res.json(rows);
+// Get Daily Tasks
+app.get('/api/daily-tasks', (req, res) => {
+  const tasks = db.prepare('SELECT id, name FROM trees WHERE is_task = 1').all();
+  const dailyList = [];
+  tasks.forEach(t => {
+    const match = t.name.match(/Daily (.+) \((\d+)\)/);
+    if (match) {
+      const [, name, count] = match;
+      for (let i = 0; i < parseInt(count); i++) {
+        dailyList.push({ treeId: t.id, name: `${name}${count > 1 ? ` #${i + 1}` : ''}` });
+      }
+    } else {
+      dailyList.push({ treeId: t.id, name: t.name });
+    }
+  });
+  res.json(dailyList);
 });
 
+// Log Completed Tasks
 app.post('/api/completed', (req, res) => {
-  const { task, startTime, endTime } = req.body;
-  console.log('POST /api/completed received:', { task, startTime, endTime });
-  db.prepare('INSERT INTO completed_tasks (task, startTime, endTime) VALUES (?, ?, ?)').run(task, startTime, endTime);
-  res.json({ message: 'Task completed', task, startTime, endTime });
+  const { treeId, task, startTime, endTime } = req.body;
+  db.prepare('INSERT INTO completed_tasks (tree_id, task, start_time, end_time) VALUES (?, ?, ?, ?)').run(treeId, task, startTime, endTime);
+  res.json({ message: 'Task completed' });
+});
+
+// Get Completed Tasks
+app.get('/api/completed', (req, res) => {
+  const rows = db.prepare('SELECT tree_id, task, start_time, end_time FROM completed_tasks').all();
+  res.json(rows);
 });
 
 app.listen(port, () => {

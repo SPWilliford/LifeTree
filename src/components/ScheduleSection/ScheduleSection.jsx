@@ -27,9 +27,12 @@ function ScheduleSection({ completedTasks, stagedTask, setStagedTask, activeTask
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const task = e.dataTransfer.getData('text/plain');
-    setStagedTask(task);
-    setList(list.filter((t) => t !== task));
+    const taskName = e.dataTransfer.getData('text/plain'); // e.g., "Apply to 1 job #1"
+    const task = list.find(t => t.name === taskName); // Full object: { treeId, name }
+    if (task) {
+      setStagedTask(task); // Set { treeId, name }
+      setList(list.filter(t => t.treeId !== task.treeId || t.name !== task.name)); // Remove from list
+    }
   };
 
   const handleDragOver = (e) => e.preventDefault();
@@ -115,8 +118,8 @@ function ScheduleSection({ completedTasks, stagedTask, setStagedTask, activeTask
 
   const renderCompletedTaskOverlays = () => {
     return completedTasks.map((task, index) => {
-      const start = new Date(task.startTime);
-      const end = new Date(task.endTime);
+      const start = new Date(task.start_time);
+      const end = new Date(task.end_time);
       const startHour = start.getHours();
       const startMinutes = start.getMinutes();
       const endHour = end.getHours();
@@ -140,8 +143,8 @@ function ScheduleSection({ completedTasks, stagedTask, setStagedTask, activeTask
             height: `${height}px`,
             width: '75%',
             right: '10px',
-            background: 'var(--base-dark)', // Fill with base-dark
-            border: '1px solid var(--mid-tone)', // Border with mid-tone
+            background: 'var(--base-dark)',
+            border: '1px solid var(--mid-tone)',
             opacity: 0.8,
             zIndex: 1,
             boxSizing: 'border-box',
@@ -188,11 +191,11 @@ function ScheduleSection({ completedTasks, stagedTask, setStagedTask, activeTask
         {activeTask ? (
           <div className={`${styles.currentTask} ${styles.active}`}>
             <span className={styles.taskText}>{activeTask.task}</span>
-            <button className={styles.taskButton} onClick={() => handleStartComplete(activeTask.task)}>Complete</button>
+            <button className={styles.taskButton} onClick={() => handleStartComplete(activeTask)}>Complete</button> {/* Pass full activeTask */}
           </div>
         ) : stagedTask ? (
           <div className={`${styles.currentTask} ${styles.staged}`}>
-            <span className={styles.taskText}>{stagedTask}</span>
+            <span className={styles.taskText}>{stagedTask.name}</span>
             <button className={styles.taskButton} onClick={() => handleStartComplete(stagedTask)}>Start</button>
           </div>
         ) : (

@@ -2,7 +2,7 @@ import './ListSection.css';
 
 function ListSection({ list, setList }) {
   const handleDragStart = (e, task) => {
-    e.dataTransfer.setData('text/plain', task);
+    e.dataTransfer.setData('text/plain', task.name);
   };
 
   return (
@@ -15,7 +15,7 @@ function ListSection({ list, setList }) {
             draggable
             onDragStart={(e) => handleDragStart(e, task)}
           >
-            {task}
+            {task.name}
           </div>
         ))}
       </div>

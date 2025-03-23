@@ -1,18 +1,36 @@
+/* src/components/ScheduleSection/ScheduleSection.css */
 .schedule-section {
-  flex: 1;
-  min-width: 0;
-  padding: 15px;
-  box-sizing: border-box;
-  background-color: var(--base-dark);
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
   gap: 10px;
 }
 
 .scroll-container {
-  flex: 1; /* Grow to fill schedule-section */
+  flex: 1;
   overflow-y: auto;
-  padding-top: 0.6em; /* Offset for first label */
+  padding-top: 0.6em; /* Scroll mechanics only */
+}
+
+.schedule-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.schedule-controls button {
+  background-color: var(--base-dark);
+  color: var(--text);
+  border: 1px solid var(--mid-tone);
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.schedule-controls button:hover {
+  background-color: var(--button-accent);
+  color: var(--base-dark);
+}
+
+.schedule-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -1,9 +1,5 @@
+/* src/components/TreeSection/TreeSection.css */
 .tree-section {
-  flex: 1;
-  padding: 15px;
-  background-color: var(--base-dark);
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
 }
 
@@ -27,12 +23,12 @@
 
 .expand-icon {
   margin-right: 5px;
-  cursor: default; /* Match button style */
+  cursor: default;
 }
 
 .tree-node-name span:nth-child(2),
 .tree-node-editing input {
-  cursor: text; /* Editable text */
+  cursor: text;
 }
 
 .tree-node-input {
@@ -59,7 +55,7 @@
 .context-menu button {
   display: block;
   width: 100%;
-  background-color: var(--mid-tone);
+  background-color: var(--base-dark);
   border: none;
   border-radius: 2px;
   padding: 5px 10px;
@@ -69,5 +65,5 @@
 }
 
 .context-menu button:hover {
-  background-color: var(--accent-2);
+  background-color: var(--button-accent);
 }

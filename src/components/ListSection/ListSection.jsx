@@ -1,17 +1,19 @@
+// src/components/ListSection/ListSection.jsx
 import './ListSection.css';
 
-function ListSection({ list, setList }) {
+function ListSection({ list, reorderList }) {
   const handleDragStart = (e, task) => {
-    e.dataTransfer.setData('text/plain', task.name);
+    e.dataTransfer.setData('text/plain', task.instanceId);
   };
 
   return (
     <div className="list-section">
       <div className="task-list">
-        {list.map((task, index) => (
+        <button onClick={reorderList}>Shuffle</button>
+        {list.map((task) => (
           <div
-            key={index}
-            className="task-item" /* No top-task */
+            key={task.instanceId}
+            className="task-item"
             draggable
             onDragStart={(e) => handleDragStart(e, task)}
           >

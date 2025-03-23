@@ -1,0 +1,42 @@
+-- backend/schema.sql
+CREATE TABLE IF NOT EXISTS tree (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  parent_id INTEGER,
+  FOREIGN KEY (parent_id) REFERENCES tree(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS node_details (
+  tree_id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  FOREIGN KEY (tree_id) REFERENCES tree(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS node_priorities (
+  tree_id INTEGER PRIMARY KEY,
+  weight INTEGER DEFAULT 0 CHECK (weight >= 0),
+  FOREIGN KEY (tree_id) REFERENCES tree(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS actions (
+  tree_id INTEGER PRIMARY KEY,
+  deadline TEXT,
+  FOREIGN KEY (tree_id) REFERENCES tree(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS repeated_actions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tree_id INTEGER NOT NULL,
+  frequency TEXT NOT NULL,
+  count INTEGER NOT NULL,
+  "interval" INTEGER DEFAULT 1,
+  FOREIGN KEY (tree_id) REFERENCES actions(tree_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS completed_actions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tree_id INTEGER NOT NULL,
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  FOREIGN KEY (tree_id) REFERENCES actions(tree_id) ON DELETE CASCADE
+);
